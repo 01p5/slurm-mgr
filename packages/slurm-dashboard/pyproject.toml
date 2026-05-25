@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "slurm-dashboard"
+version = "0.1.0"
+description = "Web dashboard for slurm-mgr."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "01p5" }]
+dependencies = [
+    "slurmlib",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=8"]
+
+[project.scripts]
+slurm-dashboard = "slurm_dashboard.server:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+slurm_dashboard = ["static/dist/**/*"]

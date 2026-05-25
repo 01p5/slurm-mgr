@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "slurmlib"
+version = "0.1.0"
+description = "SSH-driven Slurm command SDK (sinfo/squeue/sacct/scontrol/sacctmgr/...). Used by slurm-dashboard and slurm-mcp."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "01p5" }]
+dependencies = [
+    "paramiko>=3.4,<4",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=8", "pytest-mock>=3"]
+
+[tool.setuptools.packages.find]
+where = ["src"]

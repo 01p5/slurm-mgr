@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtualenvs
+.venv/
+venv/
+env/
+
+# Node / Vite
+node_modules/
+packages/slurm-dashboard/static/dist/
+packages/slurm-dashboard/frontend/dist/
+*.log
+
+# Editors
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Local config / audit
+*.local.json
+audit.jsonl
+.slurm-mgr/
+
+# Secrets — never commit private keys
+*.pem
+id_rsa
+id_ed25519
