@@ -119,6 +119,33 @@ The dashboard runs every command via the SSH runner and writes both the pre-call
 
 Through the MCP path, the destructive set is declared in `MCPServerConfig.destructive` so Olympus's `gate_tools` routes those calls through the approval queue. The MCP server itself does **not** add a second confirmation layer — Olympus is the human-in-the-loop for that flow.
 
+## Testing
+
+Backend (pytest + coverage, gate at 80%):
+
+```bash
+pip install -e packages/slurmlib -e packages/slurm-dashboard -e packages/slurm-mcp
+pip install pytest pytest-cov
+pytest                              # runs all 180 tests across the three packages
+```
+
+The repo's `pyproject.toml` pins `fail_under = 80` and the test discovery paths,
+so a plain `pytest` from the repo root will both run everything and fail the
+build if coverage drops below 80%. Current coverage: **96%**.
+
+Frontend (typecheck + production build):
+
+```bash
+cd packages/slurm-dashboard/frontend
+npm install
+npx tsc --noEmit
+npm run build
+```
+
+CI (`.github/workflows/ci.yml`) runs both jobs on every push + PR to `main`,
+across Python 3.10 and 3.12, and uploads a `coverage.xml` artifact per matrix
+row.
+
 ## Status
 
 Early. The shape is right; not everything is polished. See `docs/STATUS.md` for what's wired vs scaffolded.

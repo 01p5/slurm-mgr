@@ -1,0 +1,39 @@
+# Repo-level config — applies to the test runs that span all three
+# packages in one shot. Individual packages have their own
+# pyproject.toml under packages/.
+
+[tool.pytest.ini_options]
+testpaths = [
+    "packages/slurmlib/tests",
+    "packages/slurm-dashboard/tests",
+    "packages/slurm-mcp/tests",
+]
+addopts = "-q"
+filterwarnings = [
+    # paramiko 3.x triggers a CryptographyDeprecationWarning on TripleDES
+    # in some envs; not our problem.
+    "ignore::DeprecationWarning",
+]
+
+[tool.coverage.run]
+branch = false
+source = [
+    "slurmlib",
+    "slurm_dashboard",
+    "slurm_mcp",
+]
+omit = [
+    # `__main__` blocks are guard-only; not worth gaming coverage for.
+    "*/server.py:__main__",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+]
+fail_under = 80
+show_missing = true
+skip_covered = false

@@ -24,6 +24,15 @@ logger = logging.getLogger(__name__)
 # Where the built SPA lives. The vite build outputs here (see frontend/vite.config.ts).
 DEFAULT_STATIC_DIR = Path(__file__).resolve().parent.parent.parent / "static" / "dist"
 
+# Path prefixes that are API endpoints, not SPA routes. If route() returns
+# 404 for one of these, the structured JSON error must reach the client —
+# don't fall through to index.html.
+API_PREFIXES = ("/clusters", "/healthz", "/audit", "/tools")
+
+
+def _is_api_path(path: str) -> bool:
+    return any(path == p or path.startswith(p + "/") for p in API_PREFIXES)
+
 
 class Handler(BaseHTTPRequestHandler):
     """One request → one ``route()`` call. Static assets fall through
@@ -60,8 +69,11 @@ class Handler(BaseHTTPRequestHandler):
         status, headers, payload = route(method, path, query, body, self.deps)
 
         # API miss → try a static file (the SPA's index.html for any unknown
-        # GET so client-side routing works). Mirrors Olympus.
-        if status == 404 and method == "GET":
+        # GET so client-side routing works). Mirrors Olympus. But don't
+        # eat API-shaped 404s — if the path looked like an API endpoint
+        # (clusters/healthz/audit/tools), leave the structured JSON
+        # error alone so clients see the real failure.
+        if status == 404 and method == "GET" and not _is_api_path(path):
             served = self._maybe_serve_static(path)
             if served:
                 return

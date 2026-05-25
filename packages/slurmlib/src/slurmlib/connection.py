@@ -70,9 +70,16 @@ class Cluster:
         )
 
 
-DEFAULT_REGISTRY_PATH = Path(
-    os.environ.get("SLURM_MGR_HOSTS", Path.home() / ".slurm-mgr" / "hosts.json")
-)
+def _default_registry_path() -> Path:
+    """Resolved at call time so tests can override SLURM_MGR_HOSTS via
+    monkeypatch after the module is imported."""
+    return Path(
+        os.environ.get("SLURM_MGR_HOSTS", Path.home() / ".slurm-mgr" / "hosts.json")
+    )
+
+
+# Kept for callers that import the constant directly.
+DEFAULT_REGISTRY_PATH = _default_registry_path()
 
 
 class ClusterRegistry:
@@ -80,8 +87,8 @@ class ClusterRegistry:
     operations. Last-writer-wins on the file.
     """
 
-    def __init__(self, path: Path | str = DEFAULT_REGISTRY_PATH):
-        self.path = Path(path)
+    def __init__(self, path: Path | str | None = None):
+        self.path = Path(path) if path is not None else _default_registry_path()
 
     def _load(self) -> list[Cluster]:
         if not self.path.exists():
