@@ -6,6 +6,14 @@
 
 export type ApiError = { error: string; [k: string]: unknown };
 
+// S2.A2 — when the SPA is served under a sub-path (Olympus reverse
+// proxy at /slurm/*), Vite injects the base via import.meta.env.BASE_URL.
+// We prefix every API call with it so a relative-looking call like
+// "/healthz" actually hits "/slurm/healthz" — which Olympus then
+// strips before forwarding to the slurm-dashboard backend.
+// Standalone (BASE_URL === "/") strips to empty → no change.
+const API_BASE = (import.meta.env.BASE_URL ?? "/").replace(/\/$/, "");
+
 async function request<T>(
   method: string,
   path: string,
@@ -16,7 +24,8 @@ async function request<T>(
     headers: { "Content-Type": "application/json" },
   };
   if (body !== undefined) init.body = JSON.stringify(body);
-  const res = await fetch(path, init);
+  const url = path.startsWith("/") ? `${API_BASE}${path}` : path;
+  const res = await fetch(url, init);
   const text = await res.text();
   let data: unknown = null;
   if (text) {
