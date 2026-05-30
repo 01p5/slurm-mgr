@@ -9,9 +9,17 @@ const API_PATHS = [
   "/clusters",
   "/audit",
   "/tools",
+  "/mcp",
 ];
 
+// S2.A2 — base-path support for sub-path serving (e.g. mounted under
+// Olympus at /slurm/* via reverse proxy). Set VITE_BASE_PATH=/slurm/
+// at build time to rewrite asset URLs accordingly. Dev / standalone
+// prod build use "/" — matches how the backend serves index.html.
+const BASE = process.env.VITE_BASE_PATH ?? "/";
+
 export default defineConfig({
+  base: BASE,
   plugins: [react()],
   build: {
     outDir: "../static/dist",
