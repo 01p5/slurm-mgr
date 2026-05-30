@@ -26,6 +26,8 @@ from slurmlib import (
     SlurmClient,
 )
 from slurmlib.commands import DESTRUCTIVE_TOOLS
+from slurmlib.connection import LocalRunner
+from slurm_mcp.server import dispatch as _mcp_dispatch
 
 # ----------------------------------------------------------------------
 # Dependency bundle — passed to every route handler.
@@ -118,6 +120,19 @@ def route(
         return _json(200, {
             "destructive": sorted(DESTRUCTIVE_TOOLS),
         })
+
+    # ---- MCP-over-HTTP (S2.A1) ----
+    # POST /mcp/<cluster> — JSON-RPC 2.0 envelope on the body, single
+    # response on the body (no SSE). Cluster name "local" routes the
+    # call through a LocalRunner (matches slurm-mcp's --local mode);
+    # any other name resolves via the dashboard's cluster registry.
+    # The wire shape mirrors slurm-mcp's stdio loop exactly so
+    # Olympus's HttpTransport can talk to it without translation.
+    m = re.fullmatch(r"/mcp/(?P<cluster>[A-Za-z0-9_\-\.]+)", path)
+    if m and method == "POST":
+        return _mcp_handler(m.group("cluster"), body, deps)
+    if path.startswith("/mcp") and method == "POST":
+        return _err(404, "POST /mcp/<cluster> (use 'local' for local-mode)")
 
     # ---- Cluster registry ----
     if method == "GET" and path == "/clusters":
@@ -482,6 +497,41 @@ def _audit_tail(deps: Deps) -> tuple[int, dict, bytes]:
 # ----------------------------------------------------------------------
 # Tiny request parser — used by the HTTP server shell.
 # ----------------------------------------------------------------------
+
+
+def _mcp_handler(
+    cluster_name: str, body: dict | None, deps: Deps,
+) -> tuple[int, dict, bytes]:
+    """JSON-RPC 2.0 over HTTP for the slurm-mcp tool catalog.
+
+    Body must be a single JSON-RPC envelope. We dispatch via
+    slurm_mcp.server.dispatch (the same function the stdio loop
+    drives) so the wire shape stays in lock-step between stdio + HTTP
+    transports — Olympus's HttpTransport speaks the same dialect as
+    StdioTransport.
+
+    Notifications (no id field) return 204 with empty body. Anything
+    else returns 200 + the JSON-RPC response envelope.
+    """
+    if not isinstance(body, dict):
+        return _err(400, "expected JSON-RPC envelope body")
+
+    # Bind a SlurmClient to the requested cluster. "local" is a magic
+    # name matching slurm-mcp's --local flag (LocalRunner, no SSH).
+    if cluster_name == "local":
+        client: SlurmClient | None = SlurmClient(LocalRunner(cluster_name="local"))
+    else:
+        try:
+            cluster = deps.registry.get(cluster_name)
+        except KeyError as exc:
+            return _err(404, f"cluster {cluster_name!r} not registered: {exc}")
+        client = SlurmClient(deps.runner_factory(cluster))
+
+    response = _mcp_dispatch(body, client)
+    if response is None:
+        # Notification — spec says no response body.
+        return 204, {}, b""
+    return _json(200, response)
 
 
 def parse_request(raw_path: str) -> tuple[str, dict[str, str]]:

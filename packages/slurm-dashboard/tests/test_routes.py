@@ -117,3 +117,63 @@ def test_delete_cluster(deps):
 def test_unknown_route_404(deps):
     status, body = _body(route("GET", "/clusters/t/nonsense", {}, None, deps))
     assert status == 404 and "no route" in body["error"]
+
+
+# ---------------------------------------------------------------------------
+# S2.A1 — MCP-over-HTTP route. Mirrors slurm-mcp's stdio dispatch
+# exactly; we just exercise the HTTP wrapping here.
+# ---------------------------------------------------------------------------
+
+
+def test_mcp_initialize(deps):
+    status, body = _body(route("POST", "/mcp/local", {}, {
+        "jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {},
+    }, deps))
+    assert status == 200
+    assert body["result"]["protocolVersion"] == "2024-11-05"
+    assert body["result"]["serverInfo"]["name"] == "slurm-mcp"
+
+
+def test_mcp_tools_list_returns_full_catalog(deps):
+    status, body = _body(route("POST", "/mcp/local", {}, {
+        "jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {},
+    }, deps))
+    assert status == 200
+    tools = body["result"]["tools"]
+    # Catalog has 39 tools (17 read + 22 destructive). Don't pin to 39
+    # here — just check it covers the well-known ones so a future
+    # catalog expansion doesn't break the test.
+    names = {t["name"] for t in tools}
+    assert {"nodes_list", "jobs_list", "diagnostics_show",
+            "jobs_cancel", "cluster_reconfigure"} <= names
+
+
+def test_mcp_notification_returns_204(deps):
+    status, _ = _body(route("POST", "/mcp/local", {}, {
+        "jsonrpc": "2.0", "method": "notifications/initialized",
+        # id absent — that's what makes this a notification.
+    }, deps))
+    assert status == 204
+
+
+def test_mcp_unknown_cluster_404(deps):
+    status, body = _body(route("POST", "/mcp/no-such-cluster", {}, {
+        "jsonrpc": "2.0", "id": 3, "method": "tools/list", "params": {},
+    }, deps))
+    assert status == 404 and "not registered" in body["error"]
+
+
+def test_mcp_bad_path_404(deps):
+    status, body = _body(route("POST", "/mcp", {}, {
+        "jsonrpc": "2.0", "id": 4, "method": "tools/list",
+    }, deps))
+    assert status == 404 and "POST /mcp/<cluster>" in body["error"]
+
+
+def test_mcp_non_dict_body_400(deps):
+    # route()'s top-level `body = body or {}` makes None unreachable
+    # at the handler — exercise the explicit non-dict path with a list.
+    from slurm_dashboard.routes import _mcp_handler
+    status, _, payload = _mcp_handler("local", ["not", "a", "dict"], deps)  # type: ignore[arg-type]
+    assert status == 400
+    assert b"JSON-RPC envelope" in payload

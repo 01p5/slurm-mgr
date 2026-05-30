@@ -12,6 +12,10 @@ license = { text = "MIT" }
 authors = [{ name = "01p5" }]
 dependencies = [
     "slurmlib",
+    # S2.A1 — the dashboard exposes the same MCP catalog over HTTP
+    # at POST /mcp/<cluster>. We reuse slurm_mcp's dispatch() rather
+    # than re-implement the JSON-RPC wire shape.
+    "slurm-mcp",
 ]
 
 [project.optional-dependencies]
