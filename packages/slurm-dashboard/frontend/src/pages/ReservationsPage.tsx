@@ -64,8 +64,8 @@ export function ReservationsPage() {
         className="h-full"
         actions={
           <>
-            <Button size="sm" variant="ghost" icon={<RefreshCw size={12} />} onClick={reload} loading={loading}>reload</Button>
-            <Button size="sm" variant="primary" icon={<Plus size={12} />} onClick={() => setEdit({ mode: "create", name: "" })}>new</Button>
+            <Button size="sm" variant="ghost" icon={<RefreshCw size={14} strokeWidth={2.25} />} onClick={reload} loading={loading}>reload</Button>
+            <Button size="sm" variant="primary" icon={<Plus size={14} strokeWidth={2.25} />} onClick={() => setEdit({ mode: "create", name: "" })}>new</Button>
           </>
         }
       >

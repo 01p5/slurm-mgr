@@ -58,7 +58,7 @@ export function FairsharePage() {
     <div className="p-4 h-full grid grid-rows-2 gap-4 min-h-0">
       <Card
         title={`sshare — ${active ?? "no cluster"}`}
-        actions={<Button size="sm" variant="ghost" icon={<RefreshCw size={12} />} onClick={shareQ.reload} loading={shareQ.loading}>reload</Button>}
+        actions={<Button size="sm" variant="ghost" icon={<RefreshCw size={14} strokeWidth={2.25} />} onClick={shareQ.reload} loading={shareQ.loading}>reload</Button>}
       >
         {!active && <EmptyState message="Select a cluster." />}
         {shareQ.error && <ErrorBox message={shareQ.error} />}
@@ -69,7 +69,7 @@ export function FairsharePage() {
 
       <Card
         title={`sprio — ${active ?? "no cluster"}`}
-        actions={<Button size="sm" variant="ghost" icon={<RefreshCw size={12} />} onClick={prioQ.reload} loading={prioQ.loading}>reload</Button>}
+        actions={<Button size="sm" variant="ghost" icon={<RefreshCw size={14} strokeWidth={2.25} />} onClick={prioQ.reload} loading={prioQ.loading}>reload</Button>}
       >
         {!active && <EmptyState message="Select a cluster." />}
         {prioQ.error && <ErrorBox message={prioQ.error} />}

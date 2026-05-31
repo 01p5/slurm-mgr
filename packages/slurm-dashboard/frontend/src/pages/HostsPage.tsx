@@ -50,7 +50,7 @@ export function HostsPage() {
       header: "",
       align: "right",
       cell: (c) => (
-        <Button size="sm" variant="ghost" icon={<Trash2 size={12} />} onClick={() => setDeleting(c.name)}>
+        <Button size="sm" variant="ghost" icon={<Trash2 size={14} strokeWidth={2.25} />} onClick={() => setDeleting(c.name)}>
           remove
         </Button>
       ),
@@ -63,10 +63,10 @@ export function HostsPage() {
         title="Registered clusters"
         actions={
           <>
-            <Button size="sm" variant="ghost" icon={<RefreshCw size={12} />} onClick={reload} loading={loading}>
+            <Button size="sm" variant="ghost" icon={<RefreshCw size={14} strokeWidth={2.25} />} onClick={reload} loading={loading}>
               reload
             </Button>
-            <Button size="sm" variant="primary" icon={<Plus size={12} />} onClick={() => setAdding(true)}>
+            <Button size="sm" variant="primary" icon={<Plus size={14} strokeWidth={2.25} />} onClick={() => setAdding(true)}>
               add cluster
             </Button>
           </>

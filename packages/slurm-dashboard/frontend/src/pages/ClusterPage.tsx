@@ -21,7 +21,7 @@ export function ClusterPage() {
       >
         <div className="p-3 flex items-center gap-3">
           <Button
-            variant="danger" icon={<RotateCcw size={12} />}
+            variant="danger" icon={<RotateCcw size={14} strokeWidth={2.25} />}
             onClick={() => setReconfirm(true)} disabled={!active}
           >
             scontrol reconfigure
@@ -35,7 +35,7 @@ export function ClusterPage() {
       <Card
         title={`scontrol show config — ${active ?? "no cluster"}`}
         className="h-full"
-        actions={<Button size="sm" variant="ghost" icon={<RefreshCw size={12} />} onClick={reload} loading={loading}>reload</Button>}
+        actions={<Button size="sm" variant="ghost" icon={<RefreshCw size={14} strokeWidth={2.25} />} onClick={reload} loading={loading}>reload</Button>}
       >
         {!active && <EmptyState message="Select a cluster." />}
         {error && <ErrorBox message={error} />}

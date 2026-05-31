@@ -73,7 +73,7 @@ export function AccountingPage() {
         {field("users",     "users (csv)")}
         {field("accounts",  "accounts (csv)")}
         {field("states",    "states (CD,F,CA,...)")}
-        <Button variant="ghost" icon={<RefreshCw size={12} />} onClick={reload} loading={loading}>run sacct</Button>
+        <Button variant="ghost" icon={<RefreshCw size={14} strokeWidth={2.25} />} onClick={reload} loading={loading}>run sacct</Button>
       </div>
 
       <Card title={`sacct — ${active ?? "no cluster"}`} className="h-full">
@@ -90,7 +90,7 @@ export function AccountingPage() {
             placeholder='e.g. cluster utilization start=2026-05-01 end=2026-05-25'
             className="flex-1 bg-dark-tertiary border border-border-subtle rounded-sm px-2 py-1 font-mono text-xs"
           />
-          <Button variant="primary" icon={<Search size={12} />} onClick={runReport} loading={reportBusy}>run</Button>
+          <Button variant="primary" icon={<Search size={14} strokeWidth={2.25} />} onClick={runReport} loading={reportBusy}>run</Button>
         </div>
         {reportErr && <ErrorBox message={reportErr} />}
         {reportOut && (

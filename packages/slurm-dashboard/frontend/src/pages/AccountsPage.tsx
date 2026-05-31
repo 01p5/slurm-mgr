@@ -67,9 +67,9 @@ export function AccountsPage() {
           </button>
         ))}
         <div className="flex-1" />
-        <Button size="sm" variant="ghost" icon={<RefreshCw size={12} />} onClick={reload} loading={loading}>reload</Button>
+        <Button size="sm" variant="ghost" icon={<RefreshCw size={14} strokeWidth={2.25} />} onClick={reload} loading={loading}>reload</Button>
         {meta.endpoint && (
-          <Button size="sm" variant="primary" icon={<Plus size={12} />} onClick={() => setEdit({ mode: "create", name: "" })}>
+          <Button size="sm" variant="primary" icon={<Plus size={14} strokeWidth={2.25} />} onClick={() => setEdit({ mode: "create", name: "" })}>
             new {meta.id}
           </Button>
         )}

@@ -80,7 +80,7 @@ export function JobsPage() {
           onChange={(e) => setFilter(e.target.value)}
           className="flex-1 bg-dark-tertiary border border-border-subtle rounded-sm px-2 py-1.5 font-mono text-xs"
         />
-        <Button size="sm" variant="ghost" icon={<RefreshCw size={12} />} onClick={reload} loading={loading}>reload</Button>
+        <Button size="sm" variant="ghost" icon={<RefreshCw size={14} strokeWidth={2.25} />} onClick={reload} loading={loading}>reload</Button>
       </div>
 
       <Card title={`Jobs — ${active ?? "no cluster"}`} className="h-full">

@@ -16,7 +16,7 @@ export function DiagnosticsPage() {
     <div className="p-4 h-full grid grid-rows-2 gap-3 min-h-0">
       <Card
         title={`sdiag — ${active ?? "no cluster"}`}
-        actions={<Button size="sm" variant="ghost" icon={<RefreshCw size={12} />} onClick={reload} loading={loading}>reload</Button>}
+        actions={<Button size="sm" variant="ghost" icon={<RefreshCw size={14} strokeWidth={2.25} />} onClick={reload} loading={loading}>reload</Button>}
       >
         {!active && <EmptyState message="Select a cluster." />}
         {error && <ErrorBox message={error} />}

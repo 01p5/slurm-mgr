@@ -65,7 +65,7 @@ export function NodesPage() {
       key: "act", header: "", align: "right",
       cell: (n) => (
         <Button
-          size="sm" variant="ghost" icon={<AlertOctagon size={12} />}
+          size="sm" variant="ghost" icon={<AlertOctagon size={14} strokeWidth={2.25} />}
           onClick={() => setTarget({ node: n.name ?? n.hostname ?? "?", current: n.state ?? [] })}
         >
           set state
@@ -80,7 +80,7 @@ export function NodesPage() {
         title={`Nodes — ${active ?? "no cluster"}`}
         className="h-full"
         actions={
-          <Button size="sm" variant="ghost" icon={<RefreshCw size={12} />} onClick={reload} loading={loading}>
+          <Button size="sm" variant="ghost" icon={<RefreshCw size={14} strokeWidth={2.25} />} onClick={reload} loading={loading}>
             reload
           </Button>
         }
