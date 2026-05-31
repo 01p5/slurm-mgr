@@ -44,9 +44,14 @@ export function Layout() {
                 className={({ isActive }) =>
                   clsx(
                     "flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm text-xs whitespace-nowrap transition-colors border border-transparent",
+                    // Accent-tinted active + hover so the slurm-mgr
+                    // nav feels distinctively purple — earlier the
+                    // styles were generic dark-panel + text-primary,
+                    // which made it indistinguishable from the
+                    // Olympus shell when embedded under it.
                     isActive
-                      ? "bg-dark-panel text-text-primary border-border-subtle"
-                      : "text-text-secondary hover:text-text-primary",
+                      ? "bg-accent-purple/10 text-accent-purple border-accent-purple/40"
+                      : "text-text-secondary hover:text-accent-purple hover:bg-accent-purple/[0.06]",
                   )
                 }
               >
