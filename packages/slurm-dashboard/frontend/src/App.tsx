@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { Layout } from "./components/Layout";
+import { EmbedNavSync } from "./components/EmbedNavSync";
 import { ClusterProvider } from "./ClusterContext";
 import { HostsPage } from "./pages/HostsPage";
 import { NodesPage } from "./pages/NodesPage";
@@ -15,6 +16,7 @@ import { ClusterPage } from "./pages/ClusterPage";
 export default function App() {
   return (
     <ClusterProvider>
+      <EmbedNavSync />
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<Navigate to="/nodes" replace />} />
