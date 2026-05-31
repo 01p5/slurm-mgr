@@ -50,7 +50,7 @@ export function Layout() {
                   )
                 }
               >
-                <Icon size={14} strokeWidth={2.25} />
+                <Icon size={16} strokeWidth={2.5} />
                 {label}
               </NavLink>
             ))}
