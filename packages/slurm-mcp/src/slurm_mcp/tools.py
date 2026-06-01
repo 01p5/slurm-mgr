@@ -289,6 +289,17 @@ def _schema(properties: dict, required: list[str] | None = None) -> dict:
     }
 
 
+# Free-form K=V dict (used by `scontrol update`, `sacctmgr modify`, etc.).
+# OpenAI strict function-calling rejects bare {"type":"object"} because it
+# treats unspecified-shape objects as invalid — caught when Olympus's LLM
+# agent tried to bind slurm-mcp tools and got
+#   "Extra required key 'fields' supplied"
+# (their validator silently drops underspecified properties from
+# `properties`, which leaves the `required` list referencing them).
+# Spelling out `additionalProperties: {type: string}` is enough.
+_KV_OBJECT = {"type": "object", "additionalProperties": {"type": "string"}}
+
+
 TOOLS: list[dict[str, Any]] = [
     # ---------- READ-ONLY ----------
     {"name": "nodes_list", "destructive": False,
@@ -365,7 +376,7 @@ TOOLS: list[dict[str, Any]] = [
     {"name": "jobs_update", "destructive": True,
      "description": "Update a job (`scontrol update JobId=… <K=V>…`). ``fields`` is a {Key:Value} dict.",
      "inputSchema": _schema(
-        {"jobid": {"type": "string"}, "fields": {"type": "object"}}, ["jobid", "fields"])},
+        {"jobid": {"type": "string"}, "fields": _KV_OBJECT}, ["jobid", "fields"])},
     {"name": "nodes_set_state", "destructive": True,
      "description": "Set node state to one of DOWN/DRAIN/RESUME/IDLE/FAIL/FUTURE. Reason required for DOWN/DRAIN.",
      "inputSchema": _schema(
@@ -374,55 +385,55 @@ TOOLS: list[dict[str, Any]] = [
     {"name": "partitions_create", "destructive": True,
      "description": "`scontrol create PartitionName=<name> <K=V>…`. ``fields`` is a {Key:Value} dict.",
      "inputSchema": _schema(
-        {"name": {"type": "string"}, "fields": {"type": "object"}}, ["name"])},
+        {"name": {"type": "string"}, "fields": _KV_OBJECT}, ["name"])},
     {"name": "partitions_update", "destructive": True,
      "description": "`scontrol update PartitionName=<name> <K=V>…`.",
      "inputSchema": _schema(
-        {"name": {"type": "string"}, "fields": {"type": "object"}}, ["name", "fields"])},
+        {"name": {"type": "string"}, "fields": _KV_OBJECT}, ["name", "fields"])},
     {"name": "partitions_delete", "destructive": True,
      "description": "`scontrol delete PartitionName=<name>`. Rejected if in use.",
      "inputSchema": _schema({"name": {"type": "string"}}, ["name"])},
     {"name": "reservations_create", "destructive": True,
      "description": "`scontrol create reservation <K=V>…`. Caller supplies all fields incl. ReservationName.",
-     "inputSchema": _schema({"fields": {"type": "object"}}, ["fields"])},
+     "inputSchema": _schema({"fields": _KV_OBJECT}, ["fields"])},
     {"name": "reservations_update", "destructive": True,
      "description": "`scontrol update ReservationName=<name> <K=V>…`.",
      "inputSchema": _schema(
-        {"name": {"type": "string"}, "fields": {"type": "object"}}, ["name", "fields"])},
+        {"name": {"type": "string"}, "fields": _KV_OBJECT}, ["name", "fields"])},
     {"name": "reservations_delete", "destructive": True,
      "description": "`scontrol delete ReservationName=<name>`.",
      "inputSchema": _schema({"name": {"type": "string"}}, ["name"])},
     {"name": "accounts_add", "destructive": True,
      "description": "`sacctmgr -i add account <name> <K=V>…`.",
      "inputSchema": _schema(
-        {"name": {"type": "string"}, "fields": {"type": "object"}}, ["name"])},
+        {"name": {"type": "string"}, "fields": _KV_OBJECT}, ["name"])},
     {"name": "accounts_modify", "destructive": True,
      "description": "`sacctmgr -i modify account name=<name> set <K=V>…`. ``set`` is required.",
      "inputSchema": _schema(
-        {"name": {"type": "string"}, "set": {"type": "object"}}, ["name", "set"])},
+        {"name": {"type": "string"}, "set": _KV_OBJECT}, ["name", "set"])},
     {"name": "accounts_delete", "destructive": True,
      "description": "`sacctmgr -i delete account name=<name>`.",
      "inputSchema": _schema({"name": {"type": "string"}}, ["name"])},
     {"name": "users_add", "destructive": True,
      "description": "`sacctmgr -i add user <name> account=<account> <K=V>…`.",
      "inputSchema": _schema(
-        {"name": {"type": "string"}, "account": {"type": "string"}, "fields": {"type": "object"}},
+        {"name": {"type": "string"}, "account": {"type": "string"}, "fields": _KV_OBJECT},
         ["name"])},
     {"name": "users_modify", "destructive": True,
      "description": "`sacctmgr -i modify user name=<name> set <K=V>…`. ``set`` is required.",
      "inputSchema": _schema(
-        {"name": {"type": "string"}, "set": {"type": "object"}}, ["name", "set"])},
+        {"name": {"type": "string"}, "set": _KV_OBJECT}, ["name", "set"])},
     {"name": "users_delete", "destructive": True,
      "description": "`sacctmgr -i delete user name=<name>`.",
      "inputSchema": _schema({"name": {"type": "string"}}, ["name"])},
     {"name": "qos_add", "destructive": True,
      "description": "`sacctmgr -i add qos <name> <K=V>…`.",
      "inputSchema": _schema(
-        {"name": {"type": "string"}, "fields": {"type": "object"}}, ["name"])},
+        {"name": {"type": "string"}, "fields": _KV_OBJECT}, ["name"])},
     {"name": "qos_modify", "destructive": True,
      "description": "`sacctmgr -i modify qos name=<name> set <K=V>…`.",
      "inputSchema": _schema(
-        {"name": {"type": "string"}, "set": {"type": "object"}}, ["name", "set"])},
+        {"name": {"type": "string"}, "set": _KV_OBJECT}, ["name", "set"])},
     {"name": "qos_delete", "destructive": True,
      "description": "`sacctmgr -i delete qos name=<name>`.",
      "inputSchema": _schema({"name": {"type": "string"}}, ["name"])},
