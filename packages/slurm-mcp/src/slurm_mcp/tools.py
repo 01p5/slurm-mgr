@@ -156,7 +156,7 @@ def h_jobs_requeue(c: SlurmClient, args: dict) -> dict:
 
 def h_jobs_update(c: SlurmClient, args: dict) -> dict:
     jobid = _need(args, "jobid")
-    fields = dict(args.get("fields") or {})
+    fields = _parse_kv(args.get("fields"))
     if not fields:
         raise ValueError("fields is required (a dict of Key=Value)")
     return _ok_result(c.scontrol_update_job(jobid, **fields))
@@ -176,13 +176,13 @@ def h_nodes_set_state(c: SlurmClient, args: dict) -> dict:
 
 def h_partitions_create(c: SlurmClient, args: dict) -> dict:
     name = _need(args, "name")
-    fields = dict(args.get("fields") or {})
+    fields = _parse_kv(args.get("fields"))
     return _ok_result(c.scontrol_create_partition(name, **fields))
 
 
 def h_partitions_update(c: SlurmClient, args: dict) -> dict:
     name = _need(args, "name")
-    fields = dict(args.get("fields") or {})
+    fields = _parse_kv(args.get("fields"))
     return _ok_result(c.scontrol_update_partition(name, **fields))
 
 
@@ -191,13 +191,13 @@ def h_partitions_delete(c: SlurmClient, args: dict) -> dict:
 
 
 def h_reservations_create(c: SlurmClient, args: dict) -> dict:
-    fields = dict(args.get("fields") or {})
+    fields = _parse_kv(args.get("fields"))
     return _ok_result(c.scontrol_create_reservation(**fields))
 
 
 def h_reservations_update(c: SlurmClient, args: dict) -> dict:
     name = _need(args, "name")
-    fields = dict(args.get("fields") or {})
+    fields = _parse_kv(args.get("fields"))
     return _ok_result(c.scontrol_update_reservation(name, **fields))
 
 
@@ -210,13 +210,13 @@ def h_reservations_delete(c: SlurmClient, args: dict) -> dict:
 
 def h_accounts_add(c: SlurmClient, args: dict) -> dict:
     name = _need(args, "name")
-    fields = dict(args.get("fields") or {})
+    fields = _parse_kv(args.get("fields"))
     return _ok_result(c.sacctmgr_add_account(name, **fields))
 
 
 def h_accounts_modify(c: SlurmClient, args: dict) -> dict:
     name = _need(args, "name")
-    set_fields = dict(args.get("set") or {})
+    set_fields = _parse_kv(args.get("set"))
     if not set_fields:
         raise ValueError("`set` is required (a dict of fields to update)")
     return _ok_result(c.sacctmgr_modify_account(name, set_fields))
@@ -228,13 +228,13 @@ def h_accounts_delete(c: SlurmClient, args: dict) -> dict:
 
 def h_users_add(c: SlurmClient, args: dict) -> dict:
     name = _need(args, "name")
-    fields = dict(args.get("fields") or {})
+    fields = _parse_kv(args.get("fields"))
     return _ok_result(c.sacctmgr_add_user(name, account=args.get("account"), **fields))
 
 
 def h_users_modify(c: SlurmClient, args: dict) -> dict:
     name = _need(args, "name")
-    set_fields = dict(args.get("set") or {})
+    set_fields = _parse_kv(args.get("set"))
     if not set_fields:
         raise ValueError("`set` is required")
     return _ok_result(c.sacctmgr_modify_user(name, set_fields))
@@ -246,13 +246,13 @@ def h_users_delete(c: SlurmClient, args: dict) -> dict:
 
 def h_qos_add(c: SlurmClient, args: dict) -> dict:
     name = _need(args, "name")
-    fields = dict(args.get("fields") or {})
+    fields = _parse_kv(args.get("fields"))
     return _ok_result(c.sacctmgr_add_qos(name, **fields))
 
 
 def h_qos_modify(c: SlurmClient, args: dict) -> dict:
     name = _need(args, "name")
-    set_fields = dict(args.get("set") or {})
+    set_fields = _parse_kv(args.get("set"))
     if not set_fields:
         raise ValueError("`set` is required")
     return _ok_result(c.sacctmgr_modify_qos(name, set_fields))
@@ -289,15 +289,47 @@ def _schema(properties: dict, required: list[str] | None = None) -> dict:
     }
 
 
-# Free-form K=V dict (used by `scontrol update`, `sacctmgr modify`, etc.).
-# OpenAI strict function-calling rejects bare {"type":"object"} because it
-# treats unspecified-shape objects as invalid — caught when Olympus's LLM
-# agent tried to bind slurm-mcp tools and got
-#   "Extra required key 'fields' supplied"
-# (their validator silently drops underspecified properties from
-# `properties`, which leaves the `required` list referencing them).
-# Spelling out `additionalProperties: {type: string}` is enough.
-_KV_OBJECT = {"type": "object", "additionalProperties": {"type": "string"}}
+# Free-form K=V pairs — wire shape is an array of "Key=Value" strings,
+# parsed into a dict in the handlers via _parse_kv.
+#
+# Why an array of strings rather than an object: langchain's
+# convert_to_openai_tool(strict=True), which Olympus calls for OpenAI
+# providers, silently rewrites
+#   {"type":"object", "additionalProperties":{"type":"string"}}
+# to
+#   {"type":"object", "additionalProperties": false}
+# which makes the field literally un-fillable — OpenAI then rejects
+# the whole tool with "Extra required key 'fields' supplied" (their
+# validator drops the now-empty object from `properties` but keeps it
+# in `required`). Array-of-strings survives the strict converter
+# intact. Verified 2026-06-01 against the live demo.
+#
+# Used by scontrol update Key=Value + sacctmgr add/modify Key=Value
+# style commands.
+_KV_PAIRS = {
+    "type": "array",
+    "items": {"type": "string"},
+    "description": 'List of "Key=Value" strings. e.g. ["TimeLimit=24:00:00", "Priority=high"].',
+}
+
+
+def _parse_kv(pairs: Any) -> dict[str, str]:
+    """Turn an array of "Key=Value" strings into a dict. Tolerates a raw
+    dict too (callers that pre-date the schema change, or tests that
+    pass a literal)."""
+    if pairs is None:
+        return {}
+    if isinstance(pairs, dict):
+        return {str(k): str(v) for k, v in pairs.items()}
+    if not isinstance(pairs, list):
+        raise ValueError(f"expected list of 'Key=Value' strings, got {type(pairs).__name__}")
+    out: dict[str, str] = {}
+    for item in pairs:
+        if "=" not in item:
+            raise ValueError(f"missing '=' in field entry {item!r}; expected 'Key=Value'")
+        k, _, v = item.partition("=")
+        out[k.strip()] = v
+    return out
 
 
 TOOLS: list[dict[str, Any]] = [
@@ -376,7 +408,7 @@ TOOLS: list[dict[str, Any]] = [
     {"name": "jobs_update", "destructive": True,
      "description": "Update a job (`scontrol update JobId=… <K=V>…`). ``fields`` is a {Key:Value} dict.",
      "inputSchema": _schema(
-        {"jobid": {"type": "string"}, "fields": _KV_OBJECT}, ["jobid", "fields"])},
+        {"jobid": {"type": "string"}, "fields": _KV_PAIRS}, ["jobid", "fields"])},
     {"name": "nodes_set_state", "destructive": True,
      "description": "Set node state to one of DOWN/DRAIN/RESUME/IDLE/FAIL/FUTURE. Reason required for DOWN/DRAIN.",
      "inputSchema": _schema(
@@ -385,55 +417,55 @@ TOOLS: list[dict[str, Any]] = [
     {"name": "partitions_create", "destructive": True,
      "description": "`scontrol create PartitionName=<name> <K=V>…`. ``fields`` is a {Key:Value} dict.",
      "inputSchema": _schema(
-        {"name": {"type": "string"}, "fields": _KV_OBJECT}, ["name"])},
+        {"name": {"type": "string"}, "fields": _KV_PAIRS}, ["name"])},
     {"name": "partitions_update", "destructive": True,
      "description": "`scontrol update PartitionName=<name> <K=V>…`.",
      "inputSchema": _schema(
-        {"name": {"type": "string"}, "fields": _KV_OBJECT}, ["name", "fields"])},
+        {"name": {"type": "string"}, "fields": _KV_PAIRS}, ["name", "fields"])},
     {"name": "partitions_delete", "destructive": True,
      "description": "`scontrol delete PartitionName=<name>`. Rejected if in use.",
      "inputSchema": _schema({"name": {"type": "string"}}, ["name"])},
     {"name": "reservations_create", "destructive": True,
      "description": "`scontrol create reservation <K=V>…`. Caller supplies all fields incl. ReservationName.",
-     "inputSchema": _schema({"fields": _KV_OBJECT}, ["fields"])},
+     "inputSchema": _schema({"fields": _KV_PAIRS}, ["fields"])},
     {"name": "reservations_update", "destructive": True,
      "description": "`scontrol update ReservationName=<name> <K=V>…`.",
      "inputSchema": _schema(
-        {"name": {"type": "string"}, "fields": _KV_OBJECT}, ["name", "fields"])},
+        {"name": {"type": "string"}, "fields": _KV_PAIRS}, ["name", "fields"])},
     {"name": "reservations_delete", "destructive": True,
      "description": "`scontrol delete ReservationName=<name>`.",
      "inputSchema": _schema({"name": {"type": "string"}}, ["name"])},
     {"name": "accounts_add", "destructive": True,
      "description": "`sacctmgr -i add account <name> <K=V>…`.",
      "inputSchema": _schema(
-        {"name": {"type": "string"}, "fields": _KV_OBJECT}, ["name"])},
+        {"name": {"type": "string"}, "fields": _KV_PAIRS}, ["name"])},
     {"name": "accounts_modify", "destructive": True,
      "description": "`sacctmgr -i modify account name=<name> set <K=V>…`. ``set`` is required.",
      "inputSchema": _schema(
-        {"name": {"type": "string"}, "set": _KV_OBJECT}, ["name", "set"])},
+        {"name": {"type": "string"}, "set": _KV_PAIRS}, ["name", "set"])},
     {"name": "accounts_delete", "destructive": True,
      "description": "`sacctmgr -i delete account name=<name>`.",
      "inputSchema": _schema({"name": {"type": "string"}}, ["name"])},
     {"name": "users_add", "destructive": True,
      "description": "`sacctmgr -i add user <name> account=<account> <K=V>…`.",
      "inputSchema": _schema(
-        {"name": {"type": "string"}, "account": {"type": "string"}, "fields": _KV_OBJECT},
+        {"name": {"type": "string"}, "account": {"type": "string"}, "fields": _KV_PAIRS},
         ["name"])},
     {"name": "users_modify", "destructive": True,
      "description": "`sacctmgr -i modify user name=<name> set <K=V>…`. ``set`` is required.",
      "inputSchema": _schema(
-        {"name": {"type": "string"}, "set": _KV_OBJECT}, ["name", "set"])},
+        {"name": {"type": "string"}, "set": _KV_PAIRS}, ["name", "set"])},
     {"name": "users_delete", "destructive": True,
      "description": "`sacctmgr -i delete user name=<name>`.",
      "inputSchema": _schema({"name": {"type": "string"}}, ["name"])},
     {"name": "qos_add", "destructive": True,
      "description": "`sacctmgr -i add qos <name> <K=V>…`.",
      "inputSchema": _schema(
-        {"name": {"type": "string"}, "fields": _KV_OBJECT}, ["name"])},
+        {"name": {"type": "string"}, "fields": _KV_PAIRS}, ["name"])},
     {"name": "qos_modify", "destructive": True,
      "description": "`sacctmgr -i modify qos name=<name> set <K=V>…`.",
      "inputSchema": _schema(
-        {"name": {"type": "string"}, "set": _KV_OBJECT}, ["name", "set"])},
+        {"name": {"type": "string"}, "set": _KV_PAIRS}, ["name", "set"])},
     {"name": "qos_delete", "destructive": True,
      "description": "`sacctmgr -i delete qos name=<name>`.",
      "inputSchema": _schema({"name": {"type": "string"}}, ["name"])},
